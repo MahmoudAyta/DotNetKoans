@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using Microsoft.DotNet.Cli.Utils;
 using Xunit.Sdk;
 
@@ -21,16 +22,23 @@ namespace DotNetKoans.Engine
         public string Name { get { return $"{TypeInfo.Name} {MethodInfo.Name}"; } }
         public StepResult Meditate()
         {
+            long stepNumber = NextStep();
+            Console.WriteLine($"Executing step {stepNumber}: {MethodInfo.Name}");
+
             var koan = GetKoan();
-            var results = new[] {
-                Try(() => koan.Setup()),
-                Try(() => MethodInfo.Invoke(koan, Array.Empty<object>())),
-                Try(() => koan.TearDown())
-            };
+            var setupResult = Try(() => koan.Setup());
+            var methodResult = Try(() => InvokeMethod(koan));
+            var tearDownResult = Try(() => koan.TearDown());
+            var results = new[] { setupResult, methodResult, tearDownResult };
 
             return results.Any(r => r is FailedStepResult) ?
                 results.First(r => r is FailedStepResult) :
                 results.FirstOrDefault();
+        }
+
+        private void InvokeMethod(Koan koan)
+        {
+            MethodInfo.Invoke(koan, Array.Empty<object>());
         }
 
         public StepResult Try(Action throwable)
@@ -60,6 +68,29 @@ namespace DotNetKoans.Engine
         public Koan GetKoan()
         {
             return Instance ?? (Instance = Activator.CreateInstance(TypeInfo.AsType()) as Koan);
+        }
+
+        private static long _globalStepCounter;
+
+        /// <summary>
+        /// Gets the number of steps executed globally.
+        /// </summary>
+        public static long CurrentStep => Interlocked.Read(ref _globalStepCounter);
+
+        private static long NextStep()
+        {
+            return Interlocked.Increment(ref _globalStepCounter);
+        }
+
+        // Update the step execution method:
+        public void Run()
+        {
+            long stepNumber = NextStep();
+
+            Console.WriteLine($"Executing step {stepNumber}: {MethodInfo.Name}");
+
+            var koan = GetKoan();
+            MethodInfo.Invoke(koan, Array.Empty<object>());
         }
     }
 
