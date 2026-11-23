@@ -78,9 +78,9 @@ class AboutDestructuring : Koan
 
 		var (firstName, heroName) = batman; // uses Deconstruct(out string firstName, out string lastName, out string heroName)
 
-		Assert.Equal("Batman", heroName);
+		Assert.Equal("Wayne", heroName);
 
-		// Do you think it is a good practice ?
+		// Do you think it is a good practice ? of course no
 	}
 
 	class Batman
